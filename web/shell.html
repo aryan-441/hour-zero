@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050a12">
+  <meta name="description" content="Hour Zero is a timed challenge game about managing a closing signal and deciding when to secure your cache.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://zerohourgame.web.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Hour Zero">
+  <meta property="og:title" content="Hour Zero — The signal is already listening.">
+  <meta property="og:description" content="Solve challenges under pressure. Leave before detection to keep your cache.">
+  <meta property="og:url" content="https://zerohourgame.web.app/">
+  <meta property="og:image" content="https://zerohourgame.web.app/hour-zero-icon.jpg">
+  <meta property="og:image:alt" content="Hour Zero signal sweep">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Hour Zero">
+  <meta name="twitter:description" content="Solve challenges under pressure. Leave before detection to keep your cache.">
+  <meta name="twitter:image" content="https://zerohourgame.web.app/hour-zero-icon.jpg">
+  <title>Hour Zero</title>
+  <style>
+    :root { color-scheme: dark; --field: #050a12; --ink: #e8f3fa; --quiet: #8ba2b5; --signal: #6af0d0; --risk: #ffbb62; --rule: #20364a; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; min-height: 100%; background: var(--field); color: var(--ink); font-family: system-ui, sans-serif; }
+    body { overflow: hidden; }
+    #canvas { display: block; position: fixed; inset: 0; width: 100vw !important; height: 100vh !important; outline: none; touch-action: none; }
+    #gate { position: fixed; inset: 0; z-index: 3; display: grid; grid-template-rows: auto 1fr auto; gap: 0; padding: 26px clamp(22px, 5vw, 72px) 20px; background: var(--field); overflow: auto; }
+    #gate[hidden] { display: none; }
+    .masthead { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--rule); }
+    .wordmark { font-size: 14px; font-weight: 700; letter-spacing: .08em; }
+    .channel { color: var(--quiet); font-size: 13px; }
+    .entry { position: relative; isolation: isolate; display: flex; align-items: center; min-height: 460px; overflow: hidden; }
+    .entry-copy { position: relative; z-index: 1; width: min(700px, 72%); padding: 58px 0 64px; }
+    .signal-state { display: flex; align-items: center; gap: 10px; margin: 0 0 22px; color: var(--signal); font-size: 14px; }
+    .signal-state::before { width: 7px; height: 7px; border-radius: 50%; background: var(--signal); content: ""; }
+    h1 { max-width: 760px; margin: 0; font-size: clamp(58px, 10.5vw, 126px); line-height: .86; font-weight: 760; letter-spacing: -.075em; }
+    .deck { max-width: 490px; margin: 28px 0 24px; color: #bfccd5; font-size: clamp(18px, 2.3vw, 23px); line-height: 1.42; }
+    #progress { display: block; width: min(360px, 100%); height: 4px; margin: 24px 0 12px; accent-color: var(--signal); }
+    #status { min-height: 22px; margin: 0; color: var(--quiet); font-size: 14px; }
+    #status.error { color: var(--risk); }
+    #play { min-width: 210px; min-height: 50px; margin-top: 22px; padding: 12px 18px; border: 1px solid var(--signal); border-radius: 2px; background: var(--signal); color: #07110f; font: 700 14px system-ui, sans-serif; cursor: pointer; text-align: left; }
+    #play:hover:not(:disabled) { background: #8af6df; }
+    #play:disabled { cursor: progress; opacity: .62; }
+    #play:focus-visible, .site-links a:focus-visible { outline: 3px solid var(--risk); outline-offset: 4px; }
+    .small { max-width: 520px; margin: 18px 0 0; color: var(--quiet); font-size: 12px; line-height: 1.55; }
+    .plot { position: absolute; z-index: 0; top: 50%; right: -3vw; width: min(54vw, 650px); aspect-ratio: 1; margin: 0; transform: translateY(-50%); opacity: .82; pointer-events: none; }
+    .plot svg { display: block; width: 100%; height: 100%; }
+    .plot-note { position: absolute; right: 7%; bottom: 15%; color: var(--quiet); font-size: 12px; }
+    .lowerline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px 32px; padding-top: 16px; border-top: 1px solid var(--rule); }
+    .stakes { display: flex; flex-wrap: wrap; gap: 8px 30px; margin: 0; padding: 0; list-style: none; color: var(--quiet); font-size: 13px; }
+    .stakes strong { color: var(--ink); font-weight: 500; }
+    .site-links { display: flex; gap: 18px; margin: 0; padding: 0; list-style: none; }
+    .site-links a { color: var(--quiet); font-size: 12px; text-decoration: none; }
+    .site-links a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+    #paused { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); padding: 10px 16px; background: #0b1421; color: var(--risk); border: 1px solid var(--risk); z-index: 2; }
+    @media (max-width: 700px) {
+      #gate { padding: 18px 20px 16px; }
+      .entry { min-height: 420px; align-items: flex-start; }
+      .entry-copy { width: 100%; padding: 70px 0 24px; }
+      h1 { font-size: clamp(58px, 18vw, 92px); }
+      .plot { top: 49%; right: -34vw; width: 86vw; opacity: .48; }
+      .plot-note { display: none; }
+      .lowerline { align-items: flex-start; flex-direction: column; }
+      .stakes { gap: 8px 18px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+  </style>
+  $GODOT_HEAD_INCLUDE
+</head>
+<body>
+  <canvas id="canvas" tabindex="0" aria-label="Hour Zero game. Use the in-game buttons and answer field.">Your browser needs canvas support to run Hour Zero.</canvas>
+  <div id="paused" hidden>Paused while this tab is hidden</div>
+  <main id="gate">
+    <header class="masthead">
+      <span class="wordmark">HOUR ZERO</span>
+      <span class="channel">Field station / v5.1</span>
+    </header>
+    <section class="entry" aria-labelledby="title">
+      <figure class="plot" aria-hidden="true">
+        <svg viewBox="0 0 640 640" fill="none">
+          <circle cx="320" cy="320" r="294" stroke="#20364a"/>
+          <circle cx="320" cy="320" r="220" stroke="#20364a"/>
+          <circle cx="320" cy="320" r="146" stroke="#20364a"/>
+          <path d="M26 320H614M320 26V614M112 112L528 528M528 112L112 528" stroke="#20364a"/>
+          <path d="M320 320L515 164" stroke="#6af0d0" stroke-width="2"/>
+          <path d="M320 320L452 215" stroke="#6af0d0" stroke-opacity=".22" stroke-width="52"/>
+          <circle cx="416" cy="243" r="5" fill="#ffbb62"/>
+          <circle cx="416" cy="243" r="18" stroke="#ffbb62" stroke-opacity=".58"/>
+          <circle cx="320" cy="320" r="4" fill="#e8f3fa"/>
+        </svg>
+        <figcaption class="plot-note">Contact 01 / closing range</figcaption>
+      </figure>
+      <div class="entry-copy">
+        <p class="signal-state">The signal is already listening.</p>
+        <h1 id="title">HOUR<br>ZERO</h1>
+        <p class="deck">Solve under pressure. Build an exposed cache. Decide when to leave.</p>
+        <progress id="progress" aria-label="Game download progress"></progress>
+        <p id="status" role="status" aria-live="polite">Loading the field station…</p>
+        <button id="play" disabled>LOADING</button>
+        <p class="small">Your progress stays in this browser. A keyboard makes the timed challenges easier.</p>
+        <noscript><p class="small">JavaScript must be enabled to play.</p></noscript>
+      </div>
+    </section>
+    <footer class="lowerline">
+      <ul class="stakes" aria-label="How a run works">
+        <li><strong>Solve</strong> to go deeper</li>
+        <li><strong>Correct</strong> answers build your cache</li>
+        <li><strong>Extract</strong> before detection</li>
+      </ul>
+      <nav aria-label="Site information">
+        <ul class="site-links">
+          <li><a href="about.html">About</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+          <li><a href="mailto:hourzerosupport@gmail.com">Support</a></li>
+      <li>&copy; Aryan Arora 2026</li>
+        </ul>
+      </nav>
+    </footer>
+  </main>
+  <script src="$GODOT_URL"></script>
+  <script>
+    'use strict';
+    const config = $GODOT_CONFIG;
+    const mainPack = config.mainPack || config.executable + '.pck';
+    const canvas = document.getElementById('canvas');
+    const gate = document.getElementById('gate');
+    const status = document.getElementById('status');
+    const progress = document.getElementById('progress');
+    const play = document.getElementById('play');
+    let engine;
+    let started = false;
+    function fail(error) {
+      console.error(error);
+      gate.hidden = false;
+      progress.hidden = true;
+      status.className = 'error';
+      status.textContent = 'The game could not start. Reload, or try a current Chrome, Edge, or Firefox browser. ' + (error.message || String(error));
+      play.disabled = false;
+      play.textContent = 'Reload game';
+      play.onclick = () => location.reload();
+    }
+    function downloadProgress(current, total) {
+      if (total > 0) { progress.max = total; progress.value = current; }
+      else { progress.removeAttribute('value'); }
+    }
+    async function prepare() {
+      try {
+        if (location.protocol === 'file:') throw new Error('Serve this folder over HTTP/HTTPS; do not double-click index.html.');
+        const missing = Engine.getMissingFeatures({threads: $GODOT_THREADS_ENABLED});
+        if (missing.length) throw new Error('Missing browser features: ' + missing.join(', '));
+        engine = new Engine({...config, canvas, onProgress: downloadProgress});
+        await Promise.all([
+          Engine.load(config.executable, config.fileSizes[config.executable + '.wasm']),
+          engine.preloadFile(mainPack, mainPack)
+        ]);
+        progress.hidden = true;
+        status.textContent = 'Ready when you are.';
+        play.textContent = 'Enter Hour Zero';
+        play.disabled = false;
+        play.onclick = async () => {
+          play.disabled = true;
+          status.textContent = 'Starting the game…';
+          try {
+            await engine.start({args: ['--main-pack', mainPack]});
+            started = true;
+            gate.hidden = true;
+            canvas.focus();
+          } catch (error) { fail(error); }
+        };
+      } catch (error) { fail(error); }
+    }
+    document.addEventListener('visibilitychange', () => {
+      document.getElementById('paused').hidden = !started || !document.hidden;
+    });
+    prepare();
+  </script>
+</body>
+</html>
+
+
+
+
+
