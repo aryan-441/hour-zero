@@ -1,5 +1,7 @@
 # Hour Zero
 
+## **[PLAY HOUR ZERO — https://hourzero.web.app](https://hourzero.web.app)**
+
 **Project date: 28 October 2026.**
 
 A single-player Godot challenge game. Answer timed questions as risk rises, collect rewards, and decide when to extract.
