@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Sitemap: https://zerohourgame.web.app/sitemap.xml
+
