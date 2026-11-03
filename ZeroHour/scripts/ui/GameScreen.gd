@@ -128,6 +128,7 @@ var cols:HBoxContainer
 var rail:VBoxContainer
 var mobile_risk:Label
 var footer_right:Label
+var mobile_copyright:Label
 var mobile_layout := false
 var stat_values:Dictionary={}
 var navigation:MenuButton
@@ -202,6 +203,7 @@ func _apply_responsive_layout() -> void:
 	hud_score.visible=show_instruments
 	hud_credits.visible=show_instruments
 	footer_right.visible=not narrow
+	mobile_copyright.visible=narrow
 	shell.get_node("HeaderRow").get_node("SignalLabel").visible=show_instruments
 	mobile_risk.visible=narrow and in_run
 	brand_resize()
@@ -537,6 +539,9 @@ func _build_footer(parent):
 	right.autowrap_mode=TextServer.AUTOWRAP_OFF
 	right.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.add_child(right)
+	mobile_copyright=_label("© Aryan Arora 2026",11,MUTED)
+	mobile_copyright.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	parent.add_child(mobile_copyright)
 func _new_panel():
 	var p=VBoxContainer.new()
 	p.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -592,18 +597,18 @@ func _build_instructions():
 	var gap=Control.new()
 	gap.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	instructions.add_child(gap)
-	var row=HFlowContainer.new()
+	var row=VBoxContainer.new()
 	row.add_theme_constant_override("separation",10)
 	instructions.add_child(row)
 	_tile(row,"Solve","Beat the clock. You get 6 seconds of overtime grace, but exposure rises faster during it.",CYAN)
 	_tile(row,"02: MANAGE EXPOSURE","Exposure rises while you play. Wrong answers add risk; quick correct answers can reduce it.",AMBER)
-	var row2=HFlowContainer.new()
+	var row2=VBoxContainer.new()
 	row2.add_theme_constant_override("separation",10)
 	instructions.add_child(row2)
 	_tile(row2,"03: CHOOSE YOUR EXIT","PUSH DEEPER for more rewards or EXTRACT & BANK to keep your cache.",CYAN)
 	_tile(row2,"04: KNOW THE STAKES","Detection permanently wipes unbanked credits. Already banked credits are safe.",RED)
 	instructions.add_child(_label("Detection risk",11,CYAN))
-	var bands=HFlowContainer.new()
+	var bands=VBoxContainer.new()
 	bands.add_theme_constant_override("separation",7)
 	instructions.add_child(bands)
 	_tile(bands,"GREEN: 0-49%","0% detection chance",CYAN)
@@ -612,7 +617,7 @@ func _build_instructions():
 	_tile(bands,"RED: 80-94%","25% detection chance",RED)
 	_tile(bands,"CRITICAL: 95-99%","65% detection chance",Color("#ff2f59"))
 	instructions.add_child(_label("100% EXPOSURE: immediate capture. Ghost Protocol cannot block full exposure.",12,RED))
-	var actions=HBoxContainer.new()
+	var actions=HFlowContainer.new()
 	actions.add_theme_constant_override("separation",10)
 	instructions.add_child(actions)
 	_button(actions,"Start a run",_begin_mission,true)
@@ -943,7 +948,7 @@ func _chip(label):
 func _tile(parent,title,body,accent):
 	var group=HBoxContainer.new()
 	group.add_theme_constant_override("separation",9)
-	group.custom_minimum_size.x=190
+	group.custom_minimum_size.x=0
 	group.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	parent.add_child(group)
 	var marker=ColorRect.new()
