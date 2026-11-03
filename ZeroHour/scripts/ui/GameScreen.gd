@@ -129,6 +129,8 @@ var rail:VBoxContainer
 var mobile_risk:Label
 var footer_right:Label
 var mobile_copyright:Label
+var mobile_meter:ProgressBar
+var mobile_details:Label
 var mobile_layout := false
 var stat_values:Dictionary={}
 var navigation:MenuButton
@@ -154,7 +156,9 @@ func _ready():
 	var glass := ShaderMaterial.new()
 	glass.shader = Shader.new()
 	glass.shader.code = "shader_type canvas_item; uniform sampler2D scene : hint_screen_texture, repeat_disable, filter_linear_mipmap; void fragment(){vec3 c=textureLod(scene,SCREEN_UV,2.0).rgb; COLOR=vec4(mix(c,vec3(0.07,0.055,0.10),0.38),1.0);}"
-	veil.material = glass
+	veil.color = Color(0.04,0.03,0.07,0.55)
+	if not OS.has_feature("web"):
+		veil.material = glass
 	veil.hide()
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_responsive_layout()
@@ -179,7 +183,9 @@ func _physical_width() -> float:
 func _configure_display_scale() -> void:
 	if OS.has_feature("web"):
 		var browser_window=JavaScriptBridge.get_interface("window")
-		var logical_size=Vector2i(int(browser_window.innerWidth),int(browser_window.innerHeight))
+		var rect=JavaScriptBridge.eval("JSON.stringify([document.querySelector('#canvas').clientWidth,document.querySelector('#canvas').clientHeight])")
+		var dimensions=JSON.parse_string(rect)
+		var logical_size=Vector2i(int(dimensions[0]),int(dimensions[1]))
 		if logical_size.x>0 and logical_size.y>0 and get_window().content_scale_size!=logical_size:
 			get_window().content_scale_size=logical_size
 		return
@@ -197,15 +203,17 @@ func _apply_responsive_layout() -> void:
 	var in_run=current_panel in [challenge,decision,boss_briefing]
 	var show_instruments=in_run and not narrow
 	for item in range(5):
-		navigation.get_popup().set_item_disabled(item,in_run)
+		navigation.get_popup().set_item_disabled(item,false)
 	rail.visible=show_instruments
 	hud_depth.visible=show_instruments
 	hud_score.visible=show_instruments
 	hud_credits.visible=show_instruments
-	footer_right.visible=not narrow
-	mobile_copyright.visible=narrow
+	footer_right.visible=false
+	mobile_copyright.visible=true
 	shell.get_node("HeaderRow").get_node("SignalLabel").visible=show_instruments
-	mobile_risk.visible=narrow and in_run
+	mobile_risk.visible=in_run
+	mobile_meter.visible=in_run
+	mobile_details.visible=in_run
 	brand_resize()
 	var margin := 12 if _physical_width() < 370 else 16 if narrow else 28
 	var inset = [0,0,0,0]
@@ -217,13 +225,7 @@ func _apply_responsive_layout() -> void:
 	outer.add_theme_constant_override("margin_right",maxi(margin,int(inset[1])))
 	outer.add_theme_constant_override("margin_top",maxi(18 if narrow else 20,int(inset[0])))
 	outer.add_theme_constant_override("margin_bottom",maxi(24 if narrow else 18,int(inset[2])))
-	if is_instance_valid(current_panel):
-		if narrow:
-			screen_root.custom_minimum_size.y=(minf(680.0,maxf(520.0,get_viewport_rect().size.y-180.0)) if current_panel==intro else 520.0 if current_panel==challenge else 600.0) if _physical_width()<700.0 else 710.0
-		else:
-			screen_root.custom_minimum_size.y=maxf(470.0,get_viewport_rect().size.y-210.0)
-		if current_panel==intro:
-			screen_root.custom_minimum_size.y=maxf(430.0,get_viewport_rect().size.y-180.0)
+	screen_root.custom_minimum_size.y=0
 
 func brand_resize() -> void:
 	var brand := shell.get_node("HeaderRow").get_child(0)
@@ -296,6 +298,8 @@ func _build_ui():
 	add_child(outer)
 	var page_scroll=ScrollContainer.new()
 	page_scroll.name="PageScroll"
+	page_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	page_scroll.scroll_deadzone=12
 	page_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
 	page_scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	page_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
@@ -321,6 +325,22 @@ func _build_ui():
 	_build_stage(main)
 	_build_sidebar(cols)
 	_build_footer(shell)
+	_flatten_scrolls(screen_root)
+	_remove_spacers(screen_root)
+
+func _flatten_scrolls(node: Node):
+	for child in node.get_children():
+		if child is ScrollContainer:
+			child.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+			child.custom_minimum_size.y=0
+			child.mouse_filter=Control.MOUSE_FILTER_PASS
+		_flatten_scrolls(child)
+
+func _remove_spacers(node: Node):
+	for child in node.get_children():
+		if child.get_class()=="Control" and child.size_flags_vertical==Control.SIZE_EXPAND_FILL:
+			child.hide()
+		_remove_spacers(child)
 
 func _build_header(parent):
 	var row=HBoxContainer.new()
@@ -411,13 +431,46 @@ func _build_header(parent):
 	popup.id_pressed.connect(_navigate)
 	mobile_risk=_label("EXPOSURE 00%",13,CYAN)
 	mobile_risk.visible=false
-	mobile_risk.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+	mobile_risk.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
+	mobile_risk.add_theme_font_size_override("font_size",20)
+	var risk_surface=StyleBoxFlat.new()
+	risk_surface.bg_color=Color("#292635")
+	risk_surface.border_color=CYAN
+	risk_surface.set_border_width_all(1)
+	risk_surface.set_corner_radius_all(12)
+	risk_surface.set_content_margin_all(12)
+	mobile_risk.add_theme_stylebox_override("normal",risk_surface)
 	parent.add_child(mobile_risk)
+	mobile_details=_label("",14,MUTED)
+	parent.add_child(mobile_details)
+	mobile_meter=ProgressBar.new()
+	mobile_meter.custom_minimum_size.y=7
+	mobile_meter.show_percentage=false
+	mobile_meter.visible=false
+	parent.add_child(mobile_meter)
+	popup.add_separator()
+	popup.add_item("Privacy policy",7)
+	popup.add_item("Terms of service",8)
+	popup.add_item("Contact support",9)
 func _place_menu_sheet(popup: PopupMenu):
 	if popup.visible:
-		popup.position = Vector2i(12, maxi(8,int(get_viewport_rect().size.y)-popup.size.y-16))
+		popup.max_size=Vector2i(maxi(240,int(get_viewport_rect().size.x)-24),maxi(160,int(get_viewport_rect().size.y)-24))
+		popup.position = Vector2i(12,12)
 
 func _navigate(id:int) -> void:
+	if id<5 and GameManager.game_state in ["playing","decision","boss_briefing"]:
+		var confirmation=ConfirmationDialog.new()
+		confirmation.dialog_text="Leave this run? Your unbanked credits will be lost."
+		confirmation.title="Leave run"
+		add_child(confirmation)
+		confirmation.confirmed.connect(func():
+			timer.stop()
+			GameManager.return_to_start()
+			_navigate(id)
+			confirmation.queue_free())
+		confirmation.canceled.connect(confirmation.queue_free)
+		confirmation.popup_centered(Vector2i(280,160))
+		return
 	sounds.play_cue("navigate")
 	match id:
 		0: _back_to_intro()
@@ -426,10 +479,13 @@ func _navigate(id:int) -> void:
 		3: _open_stats()
 		4: _open_about()
 		6: _toggle_sound()
+		7: OS.shell_open("https://hourzero.web.app/privacy.html")
+		8: OS.shell_open("https://hourzero.web.app/terms.html")
+		9: OS.shell_open("mailto:hourzerosupport@gmail.com")
 
 func _build_stage(parent):
 	parent.add_child(_rule())
-	screen_root=Control.new()
+	screen_root=VBoxContainer.new()
 	screen_root.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	screen_root.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	parent.add_child(screen_root)
@@ -454,9 +510,7 @@ func _build_stage(parent):
 	_build_challenge()
 	_build_decision()
 	_build_results()
-	for panel in [instructions, boss_briefing]:
-		_make_content_scrollable(panel)
-	_make_content_scrollable(decision,2)
+
 func _make_content_scrollable(panel: VBoxContainer, fixed_rows: int = 1) -> void:
 	var content_nodes=panel.get_children()
 	for index in range(fixed_rows):
@@ -518,6 +572,10 @@ func _build_sidebar(parent):
 	note.custom_minimum_size.y=44
 	rail.add_child(note)
 func _build_footer(parent):
+	var footer_box=VBoxContainer.new()
+	parent.add_child(footer_box)
+	footer_box.visible=not OS.has_feature("web")
+	parent=footer_box
 	var row=HBoxContainer.new()
 	parent.add_child(row)
 	var left=_label("Saved on this device",9,MUTED)
@@ -542,9 +600,19 @@ func _build_footer(parent):
 	mobile_copyright=_label("© Aryan Arora 2026",11,MUTED)
 	mobile_copyright.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	parent.add_child(mobile_copyright)
+	var links=HFlowContainer.new()
+	links.add_theme_constant_override("h_separation",16)
+	parent.add_child(links)
+	for entry in [["Privacy policy","https://hourzero.web.app/privacy.html"],["Terms of service","https://hourzero.web.app/terms.html"],["hourzerosupport@gmail.com","mailto:hourzerosupport@gmail.com"]]:
+		var link=LinkButton.new()
+		link.text=entry[0]
+		link.uri=entry[1]
+		link.custom_minimum_size.y=44
+		link.add_theme_font_size_override("font_size",13)
+		links.add_child(link)
 func _new_panel():
 	var p=VBoxContainer.new()
-	p.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	p.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	p.add_theme_constant_override("separation",11)
 	screen_root.add_child(p)
 	return p
@@ -574,12 +642,12 @@ func _build_intro():
 	harbor.texture=preload("res://assets/harbor.svg")
 	harbor.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
 	harbor.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	harbor.custom_minimum_size.y=185
-	harbor.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	harbor.custom_minimum_size.y=160
+	harbor.size_flags_vertical=Control.SIZE_FILL
 	harbor.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	intro.add_child(harbor)
 	intro.add_child(_label("NIGHT SHIFT",13,AMBER))
-	intro.add_child(_label("One more signal?",40,TEXT))
+	intro.add_child(_label("One more signal?",32,TEXT))
 	intro.add_child(_label("Each puzzle earns credits. Extract to keep them, or stay on the air and risk getting caught.",17,MUTED))
 	var actions=HFlowContainer.new()
 	actions.add_theme_constant_override("h_separation",10)
@@ -664,7 +732,7 @@ func _build_stats():
 		stack.add_child(value)
 		stack.add_child(_label(metric[1],13,MUTED))
 	stats_screen.add_child(_label("Saved on this device",12,MUTED))
-	var actions=HBoxContainer.new()
+	var actions=HFlowContainer.new()
 	stats_screen.add_child(actions)
 	_button(actions,"Back to start",_back_to_intro,false)
 
@@ -691,7 +759,7 @@ func _build_about():
 	content.add_child(_rule())
 	content.add_child(_label("TEAM FileNotFoundError",18,CYAN))
 	content.add_child(_label("Aryan Arora (Leader)\nAarush Sahai\nDhyann Jhunjhunwala",15,TEXT))
-	var actions=HBoxContainer.new()
+	var actions=HFlowContainer.new()
 	actions.add_theme_constant_override("separation",10)
 	about.add_child(actions)
 	_button(actions,"How to play",_open_instructions,false)
@@ -725,7 +793,7 @@ func _build_armory():
 	card_list.add_child(cards2)
 	_add_armory_card(cards2,"ghost_protocol","GHOST PROTOCOL","Block one detection below 100% exposure.","750 CREDITS",Color("#8ba2b5"))
 	_add_armory_card(cards2,"cache_spike","CACHE SPIKE","Add 50 credits after your next correct answer.","525 CREDITS",Color("#ffbb62"))
-	var actions=HBoxContainer.new()
+	var actions=HFlowContainer.new()
 	actions.add_theme_constant_override("separation",10)
 	armory.add_child(actions)
 	_button(actions,"DEPLOY WITH LOADOUT",_begin_mission,true)
@@ -748,7 +816,7 @@ func _build_boss_briefing() -> void:
 	var gap=Control.new()
 	gap.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	boss_briefing.add_child(gap)
-	var actions=HBoxContainer.new()
+	var actions=HFlowContainer.new()
 	actions.add_theme_constant_override("separation",10)
 	boss_briefing.add_child(actions)
 	_button(actions,"ENGAGE BOSS NODE",_engage_boss,true)
@@ -786,8 +854,9 @@ func _build_challenge():
 	challenge_header=_label("",11,CYAN)
 	challenge_header.custom_minimum_size.y=22
 	challenge_header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
-	challenge.add_child(challenge_header)
 	var row=HBoxContainer.new()
+	challenge_header.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	row.add_child(challenge_header)
 	row.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	row.alignment=BoxContainer.ALIGNMENT_END
 	clock_label=_label("12",24,CYAN)
@@ -807,7 +876,7 @@ func _build_challenge():
 	content.alignment=BoxContainer.ALIGNMENT_BEGIN
 	content.add_theme_constant_override("separation",11)
 	challenge_scroll.add_child(content)
-	prompt=_label("",26,TEXT)
+	prompt=_label("",22,TEXT)
 	prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	content.add_child(prompt)
 	challenge_status=_label("Solve the challenge.",11,MUTED)
@@ -1019,6 +1088,7 @@ func _show_panel(panel):
 	_apply_responsive_layout()
 	if page_fade:
 		page_fade.kill()
+	outer.get_node("PageScroll").set_deferred("scroll_vertical",0)
 	panel.modulate.a=1.0
 	if not reduced_motion:
 		panel.modulate.a=0.35
@@ -1307,6 +1377,24 @@ func _update_risk():
 	if displayed_credits!=credits:
 		displayed_credits=credits
 		hud_credits.text="CREDITS  %03d" % credits
+	var profile=GameManager.get_detection_profile()
+	var band_name="Stable" if profile["band"]=="GREEN" else str(profile["band"]).capitalize()
+	var status_color=Color("#a8d8a0")
+	match profile["band"]:
+		"YELLOW": status_color=Color("#f4dc61")
+		"ORANGE": status_color=AMBER
+		"RED": status_color=RED
+		"CRITICAL": status_color=Color("#ff2f59")
+	mobile_risk.text="Exposure  %d%% · %s" % [int(GameManager.risk),band_name]
+	mobile_details.text="Detection  %.0f%%   ·   Unbanked  %d credits" % [float(profile["chance"]),GameManager.unbanked_rewards]
+	mobile_risk.add_theme_color_override("font_color",status_color)
+	mobile_meter.value=GameManager.risk
+	if band_name!=str(mobile_meter.get_meta("band","")):
+		var mobile_fill=StyleBoxFlat.new()
+		mobile_fill.bg_color=status_color
+		mobile_fill.set_corner_radius_all(3)
+		mobile_meter.add_theme_stylebox_override("fill",mobile_fill)
+		mobile_meter.set_meta("band",band_name)
 	var current_risk: float=GameManager.risk
 	var risk_integer=int(current_risk)
 	# Redraw the instrument once per visible percentage point.
@@ -1321,8 +1409,7 @@ func _update_risk():
 	var band=str(info["band"])
 	# 95-99% and 100% share a colour but have different detection probabilities.
 	risk_odds.text="DETECTION CHANCE: %.0f%%" % float(info["chance"])
-	if is_instance_valid(mobile_risk):
-		mobile_risk.text="EXPOSURE %02d%%" % risk_integer
+
 	if band==displayed_risk_band:
 		return
 	if GameManager.game_state=="playing" and band in ["RED","CRITICAL"] and displayed_risk_band!="":
@@ -1350,14 +1437,14 @@ func _refresh():
 		var r=GameManager.last_resolution
 		var correct=bool(r.get("correct",false))
 		var accent=CYAN if correct else RED
-		decision_outcome.text="CORRECT: CACHE REWARDED" if correct else "No reward this time"
+		decision_outcome.text="Correct · Cache rewarded" if correct else "No reward this time"
 		decision_outcome.add_theme_color_override("font_color",accent)
 		var banner_style:StyleBoxFlat=decision_banner.get_theme_stylebox("panel")
 		banner_style.border_color=accent
 		banner_style.bg_color=Color("#263527") if correct else Color("#342325")
 		decision_status.text="You are still in. Choose what happens next."
 		decision_status.add_theme_color_override("font_color",TEXT)
-		var late="OVERTIME: %.1f SEC: +%.1f RISK" % [r.get("overtime_seconds",0.0),float(r.get("overtime_seconds",0.0))*1.0] if float(r.get("overtime_seconds",0.0))>0.0 else "ON TIME: NO OVERTIME EXPOSURE"
+		var late="Overtime  %.1f s · Exposure +%.1f" % [r.get("overtime_seconds",0.0),float(r.get("overtime_seconds",0.0))*1.0] if float(r.get("overtime_seconds",0.0))>0.0 else "On time · No overtime exposure"
 		var boss_summary=""
 		if bool(r.get("is_boss",false)):
 			boss_summary="BOSS NODE: "+("SUCCESS: +150 BONUS CREDITS: EXPOSURE -10 POINTS" if correct else "FAILED: EXPOSURE +15 POINTS")+"\n"
@@ -1365,7 +1452,8 @@ func _refresh():
 			boss_summary+="GHOST PROTOCOL: DETECTION EVENT BLOCKED\n"
 		if int(r.get("cache_spike_bonus",0))>0:
 			boss_summary+="CACHE SPIKE: +%d CREDITS\n" % int(r["cache_spike_bonus"])
-		decision_text.text=boss_summary+late+"\n\n"+str(r.get("explanation",""))+"\n\nCURRENT EXPOSURE: %d%%     DETECTION CHANCE: %.0f%%\nUNBANKED CACHE: %d CREDITS" % [int(GameManager.risk),float(r.get("detection_chance",0.0)),GameManager.unbanked_rewards]
+		decision_text.text=boss_summary+late+"\n\n"+str(r.get("explanation",""))
+
 	if GameManager.game_state=="results":
 		var just_finished=not results.visible
 		timer.stop()
