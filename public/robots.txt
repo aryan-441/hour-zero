@@ -1,4 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://zerohourgame.web.app/sitemap.xml
-
+Sitemap: https://hourzero.web.app/sitemap.xml

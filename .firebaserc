@@ -1,16 +1,5 @@
 {
-  "projects": {},
-  "targets": {
-    "zerohour-dabfb": {
-      "hosting": {
-        "game": [
-          "zerohourgame"
-        ],
-        "hourzero": [
-          "hourzero"
-        ]
-      }
-    }
-  },
+  "projects": {"default": "zerohour-dabfb"},
+  "targets": {"zerohour-dabfb": {"hosting": {"game": ["zerohourgame"], "hourzero": ["hourzero"]}}},
   "etags": {}
 }
