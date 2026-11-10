@@ -16,10 +16,10 @@ Boss challenges arrive during longer runs. Five single-use perks give you ways t
 ## Game features
 
 - Local progress, scores, credits, perk inventory, and sound settings saved in your browser
-- Nine detection bands, timed challenges, overtime, and escalating risk
+- Five detection bands, timed challenges, overtime, and escalating risk
 - Five perks and recurring boss encounters
 - Stats for accuracy, response time, completed runs, and banked or lost credits
-- Responsive browser interface for desktop, tablet, and phone screen sizes
+- Laptop-first browser interface with a dedicated phone notice
 - Original harbor artwork and sound effects created for Hour Zero
 
 Progress is stored separately by browser and website. It does not sync between devices.
@@ -61,3 +61,4 @@ Keep the exported files together when previewing or hosting the game.
 ## License
 
 Hour Zero is proprietary. See LICENSE for usage terms. Godot and other third-party components remain under their respective licenses.
+

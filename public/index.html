@@ -3,72 +3,90 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#10120f">
+  <meta name="theme-color" content="#1b1c2a">
   <meta name="description" content="Hour Zero is a timed challenge game about managing a closing signal and deciding when to secure your cache.">
   <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://zerohourgame.web.app/">
+  <link rel="canonical" href="https://hourzero.web.app/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Hour Zero">
   <meta property="og:title" content="Hour Zero — The signal is already listening.">
   <meta property="og:description" content="Solve challenges under pressure. Leave before detection to keep your cache.">
-  <meta property="og:url" content="https://zerohourgame.web.app/">
-  <meta property="og:image" content="https://zerohourgame.web.app/hour-zero-icon.jpg">
+  <meta property="og:url" content="https://hourzero.web.app/">
+  <meta property="og:image" content="https://hourzero.web.app/hour-zero-icon.jpg">
   <meta property="og:image:alt" content="Hour Zero signal sweep">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Hour Zero">
   <meta name="twitter:description" content="Solve challenges under pressure. Leave before detection to keep your cache.">
-  <meta name="twitter:image" content="https://zerohourgame.web.app/hour-zero-icon.jpg">
+  <meta name="twitter:image" content="https://hourzero.web.app/hour-zero-icon.jpg">
   <title>Hour Zero</title>
   <style>
-    :root { color-scheme: dark; --field: #10120f; --ink: #f3f0df; --quiet: #aeb8a7; --signal: #a8d8a0; --risk: #edb56a; --rule: #354139; }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; width: 100%; height: 100%; min-height: 100%; background: var(--field); color: var(--ink); font-family: system-ui, sans-serif; }
-    body { overflow: hidden; }
-    #canvas { display: block; position: fixed; inset: 0; width: 100vw !important; height: 100dvh !important; outline: none; touch-action: none; }
-    #gate { position: fixed; inset: 0; z-index: 3; display: grid; grid-template-rows: auto 1fr auto; gap: 0; padding: max(26px, env(safe-area-inset-top)) clamp(22px, 5vw, 72px) max(20px, env(safe-area-inset-bottom)); background: var(--field); overflow: auto; }
-    #gate[hidden] { display: none; }
-    .masthead { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--rule); }
-    .wordmark { font-size: 14px; font-weight: 700; letter-spacing: .08em; }
-    .channel { color: var(--quiet); font-size: 13px; }
-    .entry { position: relative; isolation: isolate; display: flex; align-items: center; min-height: 460px; overflow: hidden; }
-    .entry-copy { position: relative; z-index: 1; width: min(700px, 72%); padding: 58px 0 64px; }
-    .signal-state { display: flex; align-items: center; gap: 10px; margin: 0 0 22px; color: var(--signal); font-size: 14px; }
-    .signal-state::before { width: 7px; height: 7px; border-radius: 50%; background: var(--signal); content: ""; }
-    h1 { max-width: 760px; margin: 0; font-size: clamp(58px, 10.5vw, 126px); line-height: .86; font-weight: 760; letter-spacing: -.075em; }
-    .deck { max-width: 490px; margin: 28px 0 24px; color: #c8d0be; font-size: clamp(18px, 2.3vw, 23px); line-height: 1.42; }
-    #progress { display: block; width: min(360px, 100%); height: 4px; margin: 24px 0 12px; accent-color: var(--signal); }
-    #status { min-height: 22px; margin: 0; color: var(--quiet); font-size: 14px; }
-    #status.error { color: var(--risk); }
-    #play { min-width: 210px; min-height: 50px; margin-top: 22px; padding: 12px 18px; border: 1px solid var(--signal); border-radius: 2px; background: var(--signal); color: #10120f; font: 700 14px system-ui, sans-serif; cursor: pointer; text-align: left; }
-    #play:hover:not(:disabled) { background: #c3e4b7; }
-    #play:disabled { cursor: progress; opacity: .62; }
-    #play:focus-visible, .site-links a:focus-visible { outline: 3px solid var(--risk); outline-offset: 4px; }
-    .small { max-width: 520px; margin: 18px 0 0; color: var(--quiet); font-size: 12px; line-height: 1.55; }
-    .plot { position: absolute; z-index: 0; top: 50%; right: -3vw; width: min(54vw, 650px); aspect-ratio: 1; margin: 0; transform: translateY(-50%); opacity: .82; pointer-events: none; }
-    .plot svg { display: block; width: 100%; height: 100%; }
-    .plot-note { position: absolute; right: 7%; bottom: 15%; color: var(--quiet); font-size: 12px; }
-    .lowerline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px 32px; padding-top: 16px; border-top: 1px solid var(--rule); }
-    .stakes { display: flex; flex-wrap: wrap; gap: 8px 30px; margin: 0; padding: 0; list-style: none; color: var(--quiet); font-size: 13px; }
-    .stakes strong { color: var(--ink); font-weight: 500; }
-    .site-links { display: flex; gap: 18px; margin: 0; padding: 0; list-style: none; }
-    .site-links a { color: var(--quiet); font-size: 12px; text-decoration: none; }
-    .site-links a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
-    #paused { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); padding: 10px 16px; background: #1b211c; color: var(--risk); border: 1px solid var(--risk); z-index: 2; }
-    @media (max-width: 700px) {
-      #gate { padding: 18px 20px 16px; }
-      .entry { min-height: 420px; align-items: flex-start; }
-      .entry-copy { width: 100%; padding: 70px 0 24px; }
-      h1 { font-size: clamp(58px, 18vw, 92px); }
-      .plot { top: 49%; right: -34vw; width: 86vw; opacity: .48; }
-      .plot-note { display: none; }
-      .lowerline { align-items: flex-start; flex-direction: column; }
-      .stakes { gap: 8px 18px; }
-    }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
-  .plot {width: 60%;right:-8%;aspect-ratio: 1.5;opacity:1;overflow:hidden;border-radius:18px}.plot svg {width:100%;height:100%;object-fit:cover}.plot-note{display:none}
-    :root{--field:#1b1c2a;--ink:#fff3df;--quiet:#c8c1cd;--signal:#ffc28c;--rule:#494353}
-    @media(max-width:700px){.plot{position:relative;top:auto;right:auto;transform:none;width:100%;height:150px;order:-1}.entry{display:flex;flex-direction:column;align-items:stretch;justify-content:center}.entry-copy{width:100%}}
-    #play{border-radius:12px;transition:transform .12s ease,background .12s ease;box-shadow:0 5px 20px #19131e38}#play:active{transform:scale(.97)}#gate h1{font-family:Georgia,serif;font-weight:500}@media(prefers-reduced-motion:reduce){#play{transition:none}#play:active{transform:none}}:root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px)}#canvas{height:100vh;height:100dvh}@media(max-height:500px){#gate{padding:8px 16px;display:block}#gate button{min-height:44px}}#legal{position:fixed;bottom:0;left:0;right:0;z-index:2;background:#1b1c2a;border-top:1px solid #494353;text-align:center;padding:6px 8px max(6px,env(safe-area-inset-bottom));font:11px/1.8 system-ui;color:#c8c1cd}#legal a{color:#fff3df;display:inline-block;margin:0 7px;min-height:24px}#legal .contact{font-size:11px}</style>
+  :root { color-scheme: dark; --field:#1b1c2a; --panel:#2b2b40; --ink:#fff3df; --quiet:#c8c1cd; --signal:#ffc28c; --risk:#ff5d72; --rule:#494353; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100%; height: 100%; min-height: 100%; background: var(--field); color: var(--ink); font-family: system-ui, sans-serif; }
+  body { overflow: hidden; }
+  #canvas { display:block; position:fixed; inset:0; width:100vw !important; height:100dvh !important; outline:none; touch-action:none; }
+  #legal { position:fixed; inset:auto 0 0; z-index:2; min-height:34px; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:6px clamp(16px,2vw,28px); background:var(--field); color:var(--quiet); font-size:11px; }
+  #gate { position:fixed; inset:0; z-index:3; display:grid; grid-template-rows:auto 1fr auto; padding:max(26px,env(safe-area-inset-top)) clamp(22px,5vw,72px) max(20px,env(safe-area-inset-bottom)); background:var(--field); overflow:auto; }
+  #gate[hidden], #phone-gate[hidden] { display:none; }
+  .masthead { display:flex; align-items:baseline; justify-content:space-between; gap:24px; padding-bottom:16px; border-bottom:1px solid var(--rule); }
+  .wordmark { font-size:14px; font-weight:700; letter-spacing:.08em; }
+  .channel { color:var(--quiet); font-size:13px; }
+  .entry { position:relative; isolation:isolate; display:flex; align-items:center; min-height:460px; overflow:hidden; }
+  .entry-copy { position:relative; z-index:1; width:min(700px,72%); padding:58px 0 64px; animation:station-arrive .28s ease-out both; }
+  .signal-state { display:flex; align-items:center; gap:10px; margin:0 0 22px; color:var(--signal); font-size:14px; letter-spacing:.02em; }
+  .signal-state::before { width:7px; height:7px; border-radius:50%; background:var(--signal); content:""; box-shadow:0 0 0 0 #ffc28c66; animation:beacon 2.8s ease-out infinite; }
+  h1 { max-width:760px; margin:0; font:500 clamp(58px,10.5vw,126px)/.86 Georgia,"Times New Roman",serif; letter-spacing:-.065em; }
+  .deck { max-width:490px; margin:28px 0 24px; color:#d4cedb; font-size:clamp(18px,2.3vw,23px); line-height:1.42; }
+  #progress { display:block; width:min(360px,100%); height:4px; margin:24px 0 12px; accent-color:var(--signal); }
+  #status { min-height:22px; margin:0; color:var(--quiet); font-size:14px; }
+  #status.error { color:var(--risk); }
+  #play { min-width:210px; min-height:50px; margin-top:22px; padding:12px 18px; border:1px solid var(--signal); border-radius:12px; background:var(--signal); color:#1b1c2a; font:700 14px system-ui,sans-serif; cursor:pointer; text-align:left; box-shadow:0 5px 20px #19131e38; transition:transform .13s ease,background-color .13s ease,box-shadow .13s ease; }
+  @media (hover:hover) { #play:hover:not(:disabled) { transform:translateY(-2px); background:#ffd4ac; box-shadow:0 8px 26px #ffc28c38; } }
+  #play:active:not(:disabled) { transform:translateY(1px) scale(.985); }
+  #play:disabled { cursor:progress; opacity:.62; box-shadow:none; }
+  #play:focus-visible, .site-links a:focus-visible { outline:3px solid var(--risk); outline-offset:4px; }
+  .small { max-width:520px; margin:18px 0 0; color:var(--quiet); font-size:12px; line-height:1.55; }
+  .plot { position:absolute; z-index:0; top:50%; right:-3vw; width:min(60%,760px); aspect-ratio:1.5; margin:0; transform:translateY(-50%); opacity:1; overflow:hidden; border-radius:18px; pointer-events:none; }
+  .plot svg { display:block; width:100%; height:100%; object-fit:cover; }
+  .plot-note { display:none; }
+  .lowerline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:18px 32px; padding-top:16px; border-top:1px solid var(--rule); }
+  .stakes { display:flex; flex-wrap:wrap; gap:8px 30px; margin:0; padding:0; list-style:none; color:var(--quiet); font-size:13px; }
+  .stakes strong { color:var(--ink); font-weight:500; }
+  .site-links { display:flex; flex-wrap:wrap; gap:8px 18px; margin:0; padding:0; list-style:none; }
+  .site-links a { color:var(--quiet); font-size:12px; text-decoration:none; }
+  .site-links a:hover { color:var(--ink); text-decoration:underline; text-underline-offset:4px; }
+  #paused { position:fixed; top:18px; left:50%; transform:translateX(-50%); padding:10px 16px; background:#302d42; color:var(--signal); border:1px solid var(--signal); z-index:2; }
+  #phone-gate { position:fixed; inset:0; z-index:5; display:grid; place-items:center; padding:max(24px,env(safe-area-inset-top)) 22px max(24px,env(safe-area-inset-bottom)); background:var(--field); }
+  .phone-card { position:relative; width:min(100%,560px); padding:clamp(26px,8vw,44px); overflow:hidden; border:1px solid #575064; border-radius:18px; background:var(--panel); box-shadow:0 24px 70px #08091166; }
+  .phone-card::after { position:absolute; right:-64px; bottom:-90px; width:220px; height:220px; border:1px solid #ffc28c26; border-radius:50%; box-shadow:0 0 0 24px #ffc28c0d,0 0 0 48px #ffc28c08; content:""; pointer-events:none; }
+  .phone-mark { display:flex; align-items:center; gap:10px; margin:0 0 38px; color:var(--quiet); font-size:12px; font-weight:700; letter-spacing:.11em; }
+  .phone-mark::before { width:7px; height:7px; border-radius:50%; background:var(--signal); content:""; }
+  .phone-message { position:relative; z-index:1; margin:0; color:var(--ink); font:500 clamp(28px,7.5vw,42px)/1.14 Georgia,"Times New Roman",serif; letter-spacing:-.025em; }
+  .phone-device #gate, .phone-device #canvas, .phone-device #legal, .phone-device #paused { display:none !important; }
+  .phone-device #phone-gate { display:grid !important; }
+  @media (min-width:761px) and (max-width:1100px) { .entry-copy { width:56%; padding:42px 0 46px; } .deck { max-width:420px; font-size:18px; } .plot { width:50%; right:-2vw; } }
+  @media (max-width:760px) {
+    #gate { padding:18px 20px 16px; }
+    .entry { min-height:420px; align-items:flex-start; }
+    .entry-copy { width:100%; padding:70px 0 24px; }
+    h1 { font-size:clamp(58px,18vw,92px); }
+    .plot { display:none; }
+    .lowerline { align-items:flex-start; flex-direction:column; gap:16px; }
+    .stakes { gap:8px 18px; }
+  }
+  @keyframes station-arrive { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes beacon { 0% { box-shadow:0 0 0 0 #ffc28c66; } 70%,100% { box-shadow:0 0 0 8px #ffc28c00; } }
+  @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.01ms !important; } }
+</style>
+  <script>
+    window.hourzeroIsPhone = () => {
+      const ua = navigator.userAgent || "";
+      const phoneUA = navigator.userAgentData?.mobile === true || /iPhone|iPod|Windows Phone|IEMobile|BlackBerry|Android.*Mobile/i.test(ua);
+      const smallTouchPhone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width || innerWidth, screen.height || innerHeight) <= 700 && Math.min(innerWidth, innerHeight) <= 760;
+      return phoneUA || smallTouchPhone;
+    };
+    if (window.hourzeroIsPhone()) document.documentElement.classList.add("phone-device");
+  </script>
   <link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 
@@ -76,7 +94,7 @@
 <body>
   <canvas id="canvas" tabindex="0" aria-label="Hour Zero game. Use the in-game buttons and answer field.">Your browser needs canvas support to run Hour Zero.</canvas>
   <div id="paused" hidden>Paused while this tab is hidden</div>
-  <footer id="legal"><div>© Aryan Arora 2026 · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><a href="terms.html" target="_blank" rel="noopener">Terms</a></div><a class="contact" href="mailto:hourzerosupport@gmail.com">hourzerosupport@gmail.com</a></footer>
+  <footer id="legal"><span>v6.2</span><span>© Aryan Arora 2026</span></footer>
   <main id="gate">
     <header class="masthead">
       <span class="wordmark">HOUR ZERO</span>
@@ -94,12 +112,13 @@
         <progress id="progress" aria-label="Game download progress"></progress>
         <p id="status" role="status" aria-live="polite">Loading the field station…</p>
         <button id="play" disabled>LOADING</button>
-        <p class="small">Your progress stays in this browser. Tap to answer; a keyboard also works.</p>
+        <p class="small">Your progress stays in this browser. Use your keyboard and mouse to play.</p>
         <noscript><p class="small">JavaScript must be enabled to play.</p></noscript>
       </div>
     </section>
     <footer class="lowerline">
       <ul class="stakes" aria-label="How a run works">
+        <li>v6.2</li>
         <li><strong>Solve</strong> to go deeper</li>
         <li><strong>Correct</strong> answers build your cache</li>
         <li><strong>Extract</strong> before detection</li>
@@ -115,10 +134,15 @@
       </nav>
     </footer>
   </main>
-  <script src="index.js"></script>
+  <section id="phone-gate" hidden role="status" aria-live="polite" aria-labelledby="phone-title">
+    <div class="phone-card">
+      <p class="phone-mark">HOUR ZERO · FIELD STATION</p>
+      <p class="phone-message" id="phone-title">Hourzero is best played on a laptop. Please switch to a laptop for the full experience.</p>
+    </div>
+  </section>  <script src="index.js"></script>
   <script>
     'use strict';
-    const config = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":903432,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+    const config = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":881368,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
     const mainPack = config.mainPack || config.executable + '.pck';
     const canvas = document.getElementById('canvas');
     function sizeCanvas() {
@@ -178,9 +202,26 @@
     document.addEventListener('visibilitychange', () => {
       document.getElementById('paused').hidden = !started || !document.hidden;
     });
-    prepare();
+    if (window.hourzeroIsPhone()) {
+      document.getElementById('gate').hidden = true;
+      document.getElementById('phone-gate').hidden = false;
+      document.getElementById('legal').hidden = true;
+      document.getElementById('paused').hidden = true;
+      canvas.style.display = 'none';
+    } else {
+      prepare();
+    }
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
 
 
