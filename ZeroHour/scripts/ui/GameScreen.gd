@@ -499,7 +499,7 @@ func _build_footer(parent):
 	parent=footer_box
 	var row=HBoxContainer.new()
 	parent.add_child(row)
-	var left=_label("v6.2",10,MUTED)
+	var left=_label("v6.2.1",10,MUTED)
 	left.custom_minimum_size.x=64
 	left.autowrap_mode=TextServer.AUTOWRAP_OFF
 	left.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -653,28 +653,39 @@ func _build_stats():
 	_button(actions,"Back to start",_back_to_intro,false)
 
 func _build_about():
-	_chapter(about,"Behind the game","Hour Zero",CYAN)
+	_chapter(about,"Behind the game","Team FileNotFoundError",CYAN)
+	about.add_child(_label("Aryan Arora  ·  Aarush Sahai  ·  Dhyann Jhunjhunwala",16,TEXT))
+	var content_scroll=ScrollContainer.new()
+	content_scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	content_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	content_scroll.custom_minimum_size.y=120
+	content_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+	content_scroll.follow_focus=true
+	about.add_child(content_scroll)
 	var content=VBoxContainer.new()
 	content.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation",14)
-	about.add_child(content)
+	content_scroll.add_child(content)
+	content.add_child(_label("Hour Zero",24,CYAN))
 	content.add_child(_label("Hour Zero is a high-risk, high-reward game that puts your mental capabilities to the test.",16,TEXT))
 	for paragraph in [
 		"Infiltrate a secure digital network by solving timed math, pattern, logic, memory, and attention challenges.",
 		"Each cleared challenge earns points and adds credits to your unbanked haul. As your exposure rises, the network becomes more likely to detect you.",
 		"Choose whether to continue deeper for greater rewards or extract to secure your credits. If you are detected, the run ends and you lose any credits you have not banked.",
 		"Boss challenges and tactical perks add extra ways to manage risk and push your run further.",
-		"Detailed instructions are available in Mission Briefing."
+		"Previously secured credits stay safe after detection. Spend them on single-use perks for future runs, and track your accuracy, response times, and personal bests in Stats.",
+		"Play with a keyboard and mouse on a laptop. Detailed instructions are available through How to play in the game menu.",
+		"Progress and sound settings are saved locally on this device. Hour Zero is a single-player game with no synced account or online competitive leaderboard."
 	]:
 		content.add_child(_label(paragraph,14,MUTED))
-	content.add_child(_rule())
-	content.add_child(_label("TEAM FileNotFoundError",18,CYAN))
-	content.add_child(_label("Aryan Arora (Leader)\nAarush Sahai\nDhyann Jhunjhunwala",15,TEXT))
 	var actions=HFlowContainer.new()
 	actions.add_theme_constant_override("separation",10)
 	about.add_child(actions)
 	_button(actions,"How to play",_open_instructions,false)
 	_button(actions,"Back to start",_back_to_intro,true)
+	var footer_clearance=Control.new()
+	footer_clearance.custom_minimum_size.y=28
+	about.add_child(footer_clearance)
 
 func _build_armory():
 	_chapter(armory,"Equipment","Perk shop",CYAN)
