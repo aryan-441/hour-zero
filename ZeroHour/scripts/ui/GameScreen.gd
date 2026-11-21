@@ -499,7 +499,7 @@ func _build_footer(parent):
 	parent=footer_box
 	var row=HBoxContainer.new()
 	parent.add_child(row)
-	var left=_label("v6.2.1",10,MUTED)
+	var left=_label("v6.2.2",10,MUTED)
 	left.custom_minimum_size.x=64
 	left.autowrap_mode=TextServer.AUTOWRAP_OFF
 	left.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -1307,6 +1307,7 @@ func _update_risk():
 		return
 	displayed_risk=current_risk
 	displayed_risk_integer=risk_integer
+	risk_value.text="%02d%%" % risk_integer
 	meter.value=current_risk
 	radar.set_exposure(current_risk)
 	backdrop.set_exposure(current_risk)
