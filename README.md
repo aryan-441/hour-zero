@@ -32,18 +32,18 @@ To preview the exported browser build, install Node.js and run this from the pro
 
     node serve-local.mjs
 
-Open http://127.0.0.1:8417. Serve the files over HTTP instead of opening public/index.html directly.
+Open http://127.0.0.1:8418. Serve the files over HTTP instead of opening public/index.html directly.
 
 ## Project files
 
-- ZeroHour/ — editable Godot 4.7 project, game scripts, question bank, and Web export settings
+- [Hour Zero Godot project](ZeroHour/) — editable Godot 4.7 project, game scripts, question bank, and Web export settings
 - public/ — exported browser game and website pages
 - serve-local.mjs — small local preview server with no extra packages
 - firebase.json — Firebase Hosting configuration for the public/ folder
 
 ## Build the web game
 
-Install Godot 4.7 and its matching Web export templates. Import ZeroHour/project.godot, then export the Web preset to public/index.html.
+Install Godot 4.7 and its matching Web export templates. Open the [Hour Zero project](ZeroHour/project.godot), then export the Web preset to `public/index.html`.
 
 With the Godot command line available:
 
@@ -61,4 +61,3 @@ Keep the exported files together when previewing or hosting the game.
 ## License
 
 Hour Zero is proprietary. See LICENSE for usage terms. Godot and other third-party components remain under their respective licenses.
-
